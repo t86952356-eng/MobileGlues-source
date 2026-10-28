@@ -66,7 +66,7 @@ jobs:
       - name: Install pinned Android toolchain
         run: |
           set -o pipefail
-          sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;27.3.13750724' 'cmake;3.22.1' 2>&1 | tee "$RUNNER_TEMP/g99-sdk.log
+          sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;27.3.13750724' 'cmake;3.22.1' 2>&1 | tee "$RUNNER_TEMP/g99-sdk.log"
       - name: Prepare experimental signing key
         env:
           KEYSTORE_BASE64: ${{ secrets.G99_SIGNING_KEYSTORE_BASE64 }}
