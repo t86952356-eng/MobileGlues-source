@@ -1,16 +1,17 @@
-# MobileGlues G99 Test 2 — experimental
+# MobileGlues G99 Test 3 — experimental, guided by the Test 2 phone log
 
 ## العربية
 
-- نسخة جديدة بمعمارية arm64 من التطبيق التجريبي، وليست تعديلًا للانشر.
-- التقنية الجديدة: **Driver State Filtering** لتسع دوال GL، في جدول GLES نفسه حتى تشمل أوامر المحرك الداخلية واستعادتها. يحفظ كل سياق حالته مستقلًا، ولا يخزن السياقات غير المتتبعة أو القيم الفاسدة، ولا يحذف رسمًا أو مزامنة أو يغير دقة الشادر.
-- يمكن أن تقل كلفة CPU عند كثرة أوامر الحالة المكررة. **لا توجد زيادة FPS مقاسة على هاتف G99، ولا ضمان بفرق ملحوظ إذا كان الاختناق GPU-bound**. عدادات الأوامر ليست قياس FPS.
-- إعدادات G99 الجديدة مفعلة افتراضيًا للإعدادات الجديدة بعد التحقق من G99/MT6789 + Mali-G57. للإعدادات القديمة اضغط **تطبيق افتراضيات G99** بعد نسخ MG/config.json احتياطيًا، ثم أعد تشغيل اللعبة.
-- الافتراضيات: GLES أصلي، عدم إخفاء الأخطاء، GL تلقائي، كاش 64 MiB، CS/timer/DSA وFSR1 معطلة، وترتيب multi-draw الافتراضي المرشّح حسب الإمكانات. لا نقول إن ترتيبًا ثابتًا هو أسرع ترتيب لكل الألعاب؛ يمكن إعادة اختبار multi-draw على الهاتف.
-- السجل MG/latest.log يعرض `[G99 FastPath]` وعدّادات submitted/forwarded/skipped بعد 120 إطارًا ثم كل 600. لا يوجد AI frame generation.
-- **توقيع هذه الدفعة مختلف عن Test 1 عند استخدام مفتاح التجربة المؤقت؛ احذف التطبيق التجريبي القديم أولًا ثم ثبّت Test 2. لا تحذف التطبيق الرسمي أو مجلد MG.** إعدادات MG مشتركة؛ لا تعدّلها من تطبيقين معًا.
-- لم يُجرَ اختبار جهاز فعلي. قارن العالم والدقة والحرارة والـmods نفسها، وأرسل السجل وFPS قبل/بعد بدل افتراض أن عدد الأوامر المتجاوزة يساوي ارتفاع FPS.
+- سجل الهاتف أثبت تفعيل تجربة G99 ومرشح الحالة في Test 2، لكن المستخدم لم يلاحظ تحسنًا. لا نقول إن تخطي أوامر الحالة دليل على FPS أعلى.
+- السجل أظهر GLES 3.2 على Mali-G57 MC2/MT6789، وغياب GL_EXT_multi_draw_indirect، واختيار indirect لقوائم العناصر. في هذا المسار يبني المحرك أوامر على CPU ويرفعها إلى buffer ثم ينفذ كل رسم على حدة: ليس دمجًا حقيقيًا.
+- **التغيير:** CPU-command upload elision. عندما تأتي قائمة الرسم من CPU، ولا يتوفر MDI الحقيقي، ويوجد EBO وسياق معروف ودعم مباشر صالح، تمرر الأوامر بالترتيب إلى glDrawElements/glDrawElementsBaseVertex دون بناء ورفع الأوامر المؤقتة. عدد الرسومات نفسه؛ ليست تقنية جديدة لتقليل تظليل GPU، والـbasevertex المباشر موجود أصلًا كخلفية منفصلة. الجديد هو تجاوز الجسر الزائد داخل المسار المختار وإتاحة مقارنة مستقلة.
+- أوامر indirect القادمة من التطبيق أو GPU تبقى كما هي؛ لا قراءتها إلى CPU أو حذفها. تبقى primitive restart وحدود التحقق ومسارات fallback. الأوضاع ذات MDI الحقيقي لا تُستبدل. يُخبر عداد benchmark أن المسار تغير فلا ينسب نتيجة الإرسال المباشر إلى indirect.
+- مفتاح جديد **تجاوز رفع أوامر CPU**. أبقِ Helio G99 Test مفعلاً، وقارن هذا المفتاح وحده Off ثم On مع إعادة تشغيل اللعبة في المشهد نفسه. لا حاجة لإعادة ضبط إعدادات Test 2 التي أظهر السجل أنها مفعلة بالفعل.
+- سجل جديد كل 600 عرض: `[G99 Render]` بعدادات الرسم و`bypass_batches/bypass_subdraws/avoided_cmd_bytes`؛ و`[G99 Wait]` لأزمنة CPU لاستدعاءات swap/map/read/finish وعينة 1 من 64 رسمًا. ليست أزمنة GPU ولا قياسًا سببيًا للاختناق؛ swap يشمل vsync والانتظار. العدادات تحصي أنواع الرسم المغلفة فقط وليست أثرًا كاملًا لكل GL API.
+- لا خفض دقة أو جودة أو precision، ولا frame generation أو overclock أو إزالة مزامنة. لا قياسات FPS على هاتف المطور ولا ضمان تحسن.
+- **معرّف مستقل:** com.fcl.plugin.mobileglues.g99test3، الإصدار 2.0.0-g99-test.3 / code 2003، arm64-v8a. يمكن تثبيته بجانب Test 2 دون حذفه. اختر عارض Test 3 الصحيح. تطبيقات MG تشترك في MG/config.json؛ انسخه احتياطيًا ولا تعدله من تطبيقين معًا. التوقيع غير رسمي ومؤقت لهذه الدفعة.
+- شغّل عالمًا فعليًا نحو دقيقة وأرسل MG/latest.log مع FPS ونسخة Minecraft والـmods ودقة اللعب. إذا كان bypass_batches=0 فهذه التقنية لم تخدم المشهد؛ لا تُنسب إليها زيادة ولا فشل تقني وهي غير مستخدمة. سجل أزمنة الانتظار وحده لا يثبت أن البطء GPU-bound.
 
 ## English
 
-Experimental ARM64 build, app version 2.0.0-g99-test.2 / code 2002. Adds per-context filtering of nine valid, identical driver-state assignments at the shared GLES dispatch boundary. No draw skipping, synchronization removal, precision reduction, AI generation or measured FPS claims. This targets CPU driver overhead, not GPU shader workload. New configs default to the G99 profile after hardware gating; use the confirmed Apply G99 defaults action for inherited configs. One-release signing may require uninstalling the old experimental app before installation; do not remove MG or the official app.
+Test 3 avoids the CPU-built indirect-command upload for eligible CPU draw lists on the logged G99 configuration without real MDI. It preserves individual draw order, count, index offset and base vertex; does not merge draws, change shaders or read GPU command buffers. Adds an independent OFF/ON switch and per-context render/wait diagnostics. Timings are CPU wall time, not GPU durations or measured FPS gains. Separate app ID allows side-by-side installation with Test 2; MG configuration remains shared. Unofficial prerelease, no phone FPS promise.

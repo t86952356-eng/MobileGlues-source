@@ -373,6 +373,7 @@ data class MGConfig(
     val fsr1: Fsr1Preset = Fsr1Preset.Disabled,
     /** Request only: native additionally verifies SoC/GPU before applying it. */
     val helioG99Test: Boolean = true,
+    val g99DirectSubmit: Boolean = true,
 ) {
     val fsr1Enabled: Boolean get() = fsr1 != Fsr1Preset.Disabled
 

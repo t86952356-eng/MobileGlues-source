@@ -6,6 +6,7 @@
 // End of Source File Header
 
 #include "multidraw.h"
+#include "g99_render_stats.h"
 #include "../config/settings.h"
 #include "buffer.h"
 #include "enable.h"
@@ -912,6 +913,14 @@ void mg_glMultiDrawElementsBaseVertex_indirect(GLenum mode, GLsizei* counts, GLe
 
     prepareForDraw();
 
+    // Bound EBO is necessary for offsets (never reinterpret CPU index pointers).
+    // Lists are already validated; restart takeover/scope above stays in force.
+    if (mg_g99_try_direct_elements(mode, counts, type, indices, primcount, basevertex)) {
+        // The in-process backend benchmark must not label this as indirect.
+        g_md_fallback_tick.fetch_add(1, std::memory_order_relaxed);
+        return;
+    }
+
     GLuint prevIndirectBuffer = 0;
     if (!prepare_indirect_buffer(counts, type, indices, primcount, basevertex, &prevIndirectBuffer)) {
         md_fall_elements_bv(md_backend_t::Indirect, mode, counts, type, indices, primcount, basevertex);
@@ -944,6 +953,14 @@ void mg_glMultiDrawElements_indirect(GLenum mode, const GLsizei* count, GLenum t
     }
 
     prepareForDraw();
+
+    // Bound EBO is necessary for offsets (never reinterpret CPU index pointers).
+    // Lists are already validated; restart takeover/scope above stays in force.
+    if (mg_g99_try_direct_elements(mode, count, type, indices, primcount, nullptr)) {
+        // The in-process backend benchmark must not label this as indirect.
+        g_md_fallback_tick.fetch_add(1, std::memory_order_relaxed);
+        return;
+    }
 
     GLuint prevIndirectBuffer = 0;
     if (!prepare_indirect_buffer(count, type, indices, primcount, nullptr, &prevIndirectBuffer)) {

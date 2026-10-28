@@ -488,6 +488,8 @@ class AppController(
         confirmThenUpdate(R.string.g99_defaults_warning) { MGConfig.Default }
     }
 
+    fun setG99DirectSubmit(enabled: Boolean) = update { it.copy(g99DirectSubmit = enabled) }
+
     fun setHelioG99Test(enabled: Boolean) {
         if (enabled == configStore.config.value?.helioG99Test) return
         if (enabled) {

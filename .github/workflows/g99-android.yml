@@ -23,7 +23,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          count=$(gh release view g99-test-2 --repo '${{ github.repository }}' --json assets --jq '.assets | length' 2>/dev/null || echo 0)
+          count=$(gh release view g99-test-3 --repo '${{ github.repository }}' --json assets --jq '.assets | length' 2>/dev/null || echo 0)
           if [ "$count" -gt 0 ]; then echo 'skip=true' >> "$GITHUB_OUTPUT"; else echo 'skip=false' >> "$GITHUB_OUTPUT"; fi
   build:
     needs: prepare
@@ -49,6 +49,10 @@ jobs:
           "$RUNNER_TEMP/g99_profile_test"
           g++ -std=c++20 -w -I renderer/MobileGlues-cpp -I renderer/MobileGlues-cpp/include -I renderer/MobileGlues-cpp/3rdparty/xxhash renderer/MobileGlues-cpp/tests/g99_dispatch_test.cpp renderer/MobileGlues-cpp/gl/g99_dispatch.cpp -o "$RUNNER_TEMP/g99_dispatch_test"
           "$RUNNER_TEMP/g99_dispatch_test"
+          g++ -std=c++20 -w -I renderer/MobileGlues-cpp -I renderer/MobileGlues-cpp/include -I renderer/MobileGlues-cpp/3rdparty/xxhash renderer/MobileGlues-cpp/tests/g99_submit_test.cpp renderer/MobileGlues-cpp/gl/g99_submit.cpp -o "$RUNNER_TEMP/g99_submit_test"
+          "$RUNNER_TEMP/g99_submit_test"
+          g++ -std=c++20 -w -I renderer/MobileGlues-cpp -I renderer/MobileGlues-cpp/include -I renderer/MobileGlues-cpp/3rdparty/xxhash renderer/MobileGlues-cpp/tests/g99_diagnostics_test.cpp renderer/MobileGlues-cpp/gl/g99_dispatch.cpp -o "$RUNNER_TEMP/g99_diagnostics_test"
+          "$RUNNER_TEMP/g99_diagnostics_test"
           sh renderer/MobileGlues-cpp/tests/run.sh
       - name: Stage plugin overlay and modified renderer
         run: bash renderer/scripts/g99/stage-plugin.sh "$GITHUB_WORKSPACE/plugin"
@@ -115,7 +119,7 @@ jobs:
           mkdir -p dist
           apk=$(find plugin/app/build/outputs/apk/release -name '*.apk' -print -quit)
           test -n "$apk"
-          cp "$apk" dist/MobileGlues-G99-Test-2-arm64-v8a.apk
+          cp "$apk" dist/MobileGlues-G99-Test-3-arm64-v8a.apk
           "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs dist/*.apk > dist/APK-SIGNATURE.txt
           "$ANDROID_HOME/build-tools/36.0.0/aapt2" dump badging dist/*.apk > dist/APK-MANIFEST.txt
           sha256sum dist/*.apk > dist/SHA256SUMS.txt
@@ -125,14 +129,14 @@ jobs:
       - name: Upload APK and checks
         uses: actions/upload-artifact@v4
         with:
-          name: MobileGlues-G99-Test-2
+          name: MobileGlues-G99-Test-3
           path: dist/
       - name: Publish experimental release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create g99-test-2 dist/* --repo '${{ github.repository }}' \
-            --target '${{ github.sha }}' --prerelease --title 'MobileGlues Helio G99 Test 2 (experimental)' \
+          gh release create g99-test-3 dist/* --repo '${{ github.repository }}' \
+            --target '${{ github.sha }}' --prerelease --title 'MobileGlues Helio G99 Test 3 (experimental)' \
             --notes-file renderer/docs/G99-RELEASE-NOTES.md
       - name: Publish safe failure diagnostics
         if: failure()

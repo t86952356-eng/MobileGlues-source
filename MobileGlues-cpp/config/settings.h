@@ -190,6 +190,7 @@ constexpr int MD_BACKEND_COUNT = static_cast<int>(md_backend_t::MaxValue);
 struct global_settings_t {
     bool helio_g99_requested;
     bool helio_g99_active;
+    bool g99_direct_submit;
     AngleMode angle;
     // The two halves of how `angle` came to be, kept so a report can tell the
     // truth. `angle` alone cannot: EnableIfPossible resolves to Disabled on a

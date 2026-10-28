@@ -406,6 +406,7 @@ namespace {
     // check reacts to a surface that has changed size. The three belong together,
     // and every path that presents a frame has to go through here.
     EGLBoolean presentSurface(EGLDisplay dpy, EGLSurface surface) {
+        G99PresentSample g99_present_sample;
         mg_g99_present_tick();
         LOAD_EGL(eglSwapBuffers)
         if (global_settings.fsr1_setting == FSR1_Quality_Preset::Disabled) {
@@ -428,6 +429,7 @@ namespace {
                                         SwapWithDamageFn backend) {
         const bool fsr_on = global_settings.fsr1_setting != FSR1_Quality_Preset::Disabled;
         if (backend != nullptr && !fsr_on) {
+            G99PresentSample g99_present_sample;
             mg_g99_present_tick();
             return backend(dpy, surface, rects, n_rects);
         }

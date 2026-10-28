@@ -2,12 +2,14 @@
 <resources>
     <string name="g99_group">Experimental performance</string>
     <string name="g99_test_title">Helio G99 Test</string>
-    <string name="g99_test_summary">Test 2: hardware-gated driver-state filtering, native GLES and bounded shader cache. Enabled by default for new configurations; restart the game.</string>
-    <string name="g99_test_on">Test 2 requested: nine redundant driver-state calls can be filtered per context. Native GLES, FSR1 off, GPU timer queries off and 64–128 MiB cache. Stored manual choices return when disabled. Activation and submitted/forwarded/skipped counters appear in MG/latest.log.</string>
-    <string name="g99_test_warning">Test 2 filters identical valid viewport, scissor, depth, culling and clear-state assignments at the driver dispatch boundary. It never skips draws or synchronization, and does not alter shader precision. Untracked contexts and invalid inputs are forwarded. This can reduce CPU driver overhead, but does not make GPU-heavy shaders cheaper or guarantee an FPS gain. Native GLES, FSR1 off, timer queries off and 64–128 MiB GLSL cache are runtime overrides only. Restart the game after changing this option.</string>
+    <string name="g99_test_summary">Test 3: CPU-command upload elision and render-path diagnostics. Requires the eligible G99 device and test profile; restart the game.</string>
+    <string name="g99_test_on">Test 3 requested. Keeps the GLES/cache/state baseline, adds optional direct submission of CPU draw lists and G99 Render / G99 Wait log windows.</string>
+    <string name="g99_test_warning">Unofficial Test 3 replaces CPU lists uploaded for individually issued indirect draws with direct submission only without true multi-draw indirect and with the required direct support. GPU-provided commands are untouched; no draw merging or shader quality changes. FPS may be unchanged if the path is unused or GPU/Java-bound. Log timings are CPU wall time, NOT GPU duration. Restart after changing settings.</string>
     <string name="g99_ai_title">AI Frame Generation</string>
     <string name="g99_ai_status">Not implemented in this experimental build: no validated AI interpolation pipeline or model is integrated. FSR1 is spatial upscaling, not AI frame generation.</string>
     <string name="g99_defaults_title">Apply G99 defaults</string>
-    <string name="g99_defaults_summary">Use once for a configuration inherited from Test 1. Replaces known rendering settings after confirmation; unknown keys are preserved.</string>
+    <string name="g99_defaults_summary">Optional: replaces known graphics settings after confirmation. Not needed when Test 2 settings are already enabled.</string>
     <string name="g99_defaults_warning">Replace current rendering settings with G99 defaults? Native GLES preference, no error suppression, automatic GL version, 64 MiB GLSL cache, compute/timer/DSA extensions off, FSR1 off, capability-filtered default multi-draw order and Helio G99 Test on. This resets custom multi-draw rankings too. Unknown JSON keys remain. Back up MG/config.json if you want your old manual settings. Restart the game afterward.</string>
+    <string name="g99_direct_title">CPU-command upload elision</string>
+    <string name="g99_direct_summary">New in Test 3. Avoid temporary indirect command construction/upload when no real driver batching exists. Keep the G99 profile ON and compare this switch alone OFF/ON, restarting the game. Check bypass_batches in the log. No FPS guarantee.</string>
 </resources>

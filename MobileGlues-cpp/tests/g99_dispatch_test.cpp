@@ -7,6 +7,7 @@
 #include <limits>
 #include <iostream>
 struct gles_func_t g_gles_func{};
+struct gles_caps_t g_gles_caps{};
 global_settings_t global_settings{};
 thread_local MGContext* g_current_ctx = nullptr;
 extern "C" void write_log(const char*, ...) {}

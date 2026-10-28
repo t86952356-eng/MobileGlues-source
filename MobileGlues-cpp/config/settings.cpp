@@ -36,6 +36,7 @@ static std::string g99_system_property(const char* name) {
 void init_settings() {
     global_settings.helio_g99_requested = false;
     global_settings.helio_g99_active = false;
+    global_settings.g99_direct_submit = false;
 #if defined(__APPLE__)
     global_settings.angle = AngleMode::Disabled;
     global_settings.angle_config = AngleConfig::DisableIfPossible;
@@ -183,6 +184,8 @@ void init_settings() {
     const auto hardware_name = g99_system_property("ro.hardware");
     global_settings.helio_g99_active = global_settings.helio_g99_requested &&
         g99_profile::eligible(gpuString, soc, board, hardware_name);
+    global_settings.g99_direct_submit = global_settings.helio_g99_active &&
+        (!config_has_key("g99DirectSubmit") || config_get_int("g99DirectSubmit") == 1);
     if (global_settings.helio_g99_active) {
         // Runtime overlay only: do not rewrite the user's normal settings.
         // No overclocking, error masking, synchronization removal or extension spoofing.

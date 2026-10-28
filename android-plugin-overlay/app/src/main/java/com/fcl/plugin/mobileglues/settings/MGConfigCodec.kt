@@ -35,6 +35,7 @@ internal object MGConfigCodec {
     private const val KEY_GL_VERSION = "customGLVersion"
     private const val KEY_FSR1 = "fsr1Setting"
     private const val KEY_G99_TEST = "helioG99Test"
+    private const val KEY_G99_DIRECT = "g99DirectSubmit"
 
     private val KNOWN_KEYS = listOf(
         KEY_ANGLE,
@@ -50,6 +51,7 @@ internal object MGConfigCodec {
         KEY_GL_VERSION,
         KEY_FSR1,
         KEY_G99_TEST,
+        KEY_G99_DIRECT,
     ) + MultidrawEntry.entries.flatMap { listOf(it.orderKey, it.legacyModeKey) }
 
     fun decode(root: JsonObject): MGConfig {
@@ -74,6 +76,9 @@ internal object MGConfigCodec {
             helioG99Test = root.get(KEY_G99_TEST)?.let {
                 it.isJsonPrimitive && it.asJsonPrimitive.isNumber && root.intOrNull(KEY_G99_TEST) == 1
             } ?: defaults.helioG99Test,
+            g99DirectSubmit = root.get(KEY_G99_DIRECT)?.let {
+                it.isJsonPrimitive && it.asJsonPrimitive.isNumber && root.intOrNull(KEY_G99_DIRECT) == 1
+            } ?: defaults.g99DirectSubmit,
         )
     }
 
@@ -89,6 +94,7 @@ internal object MGConfigCodec {
             addProperty(KEY_GL_VERSION, config.glVersion.wire)
             addProperty(KEY_FSR1, config.fsr1.wire)
             addProperty(KEY_G99_TEST, if (config.helioG99Test) 1 else 0)
+            addProperty(KEY_G99_DIRECT, if (config.g99DirectSubmit) 1 else 0)
             encodeMultidraw(config.multidraw)
         }
 

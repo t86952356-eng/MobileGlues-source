@@ -5,6 +5,23 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class G99ProfileTest {
+    @Test fun directSubmissionDefaultsAndIndependentToggle() {
+        assertTrue(MGConfigCodec.decode(JsonParser.parseString("{}").asJsonObject).g99DirectSubmit)
+        for (wire in listOf("0", "2", "-1", "true", "\"1\"", "null", "[]")) {
+            val decoded = MGConfigCodec.decode(JsonParser.parseString("{\"g99DirectSubmit\":$wire}").asJsonObject)
+            assertFalse(decoded.g99DirectSubmit)
+        }
+        val before = MGConfig.Default.copy(angle = AngleConfig.ForceEnable, glslCache = GlslCacheSize.Limited(256))
+        val after = before.copy(g99DirectSubmit = false)
+        assertTrue(after.helioG99Test)
+        assertEquals(before, after.copy(g99DirectSubmit = true))
+        val encoded = MGConfigCodec.encode(after, JsonParser.parseString("{\"futureKey\":42}").asJsonObject)
+        assertEquals(0, encoded.get("g99DirectSubmit").asInt)
+        assertEquals(after, MGConfigCodec.decode(encoded))
+        assertEquals(42, encoded.get("futureKey").asInt)
+        assertNull(MGConfigCodec.foreignKeysOf(encoded).get("g99DirectSubmit"))
+    }
+
     @Test fun missingRequestDefaultsOnButExplicitInvalidOrOffDoNot() {
         assertTrue(MGConfigCodec.decode(JsonParser.parseString("{}").asJsonObject).helioG99Test)
         for (value in listOf("{\"helioG99Test\":0}", "{\"helioG99Test\":2}", "{\"helioG99Test\":-1}", "{\"helioG99Test\":true}", "{\"helioG99Test\":\"bad\"}", "{\"helioG99Test\":\"1\"}", "{\"helioG99Test\":null}", "{\"helioG99Test\":[]}")) {
