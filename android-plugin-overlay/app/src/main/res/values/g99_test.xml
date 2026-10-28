@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="g99_group">Experimental performance</string>
+    <string name="g99_test_title">Helio G99 Test</string>
+    <string name="g99_test_summary">Optional G99/MT6789-family + Mali-G57 profile. Hardware-checked by the renderer. Restart the game after changing this setting.</string>
+    <string name="g99_test_on">Requested: native GLES, FSR1 off, 64–128 MiB GLSL cache and batched cache writes. Manual settings below are retained, temporarily overridden, and restored when disabled. Check renderer info/log for actual activation.</string>
+    <string name="g99_test_warning">Experimental, not a guaranteed FPS boost. On a detected G99/MT6789-family device with Mali-G57, this requests native GLES (overriding ANGLE), disables FSR1, sets a 64–128 MiB shader cache, and saves regenerable cache entries in batches of 64 or after five seconds on the next cache operation. A process kill can lose up to 63 recent translations, which are rebuilt later, not game data. Existing manual settings remain saved and return when this option is disabled. No overclock, thermal bypass, fake frames, extension spoofing or skipped synchronization. Restart the game and compare identical scenes on your device.</string>
+    <string name="g99_ai_title">AI Frame Generation</string>
+    <string name="g99_ai_status">Not implemented in this experimental build: no validated AI interpolation pipeline or model is integrated. FSR1 is spatial upscaling, not AI frame generation.</string>
+</resources>

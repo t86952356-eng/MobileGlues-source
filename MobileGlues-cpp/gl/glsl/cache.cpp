@@ -5,6 +5,7 @@
 // SPDX-License-Identifier: LGPL-2.1-only
 // End of Source File Header
 
+#include "../../config/g99_profile.h"
 #include "cache.h"
 #include <cstdio>
 #include <cstring>
@@ -144,6 +145,8 @@ size_t Cache::SHA256Hash::operator()(const array<uint8_t, 32>& key) const {
 }
 
 // Persistence policy.
+// G99 Test uses a 64-entry batch with the same deadline; its maximum
+// regenerable unsaved tail is 63 rather than the default 15.
 //
 // put() used to call save() on every insert, and save() rewrites the whole file,
 // so a shader pack loading hundreds of programs paid O(n^2) bytes of I/O for a
@@ -153,7 +156,7 @@ size_t Cache::SHA256Hash::operator()(const array<uint8_t, 32>& key) const {
 // older builds keep loading -- what a save costs therefore cannot change, only
 // how often one happens.
 //
-// A save is deferred until 16 entries are pending or 5 seconds have passed since
+// By default a save is deferred until 16 entries are pending or 5 seconds have passed since
 // the last one, whichever comes first, and the check runs on every cache
 // operation rather than only on inserts so that a run of hits still flushes a
 // tail left by earlier misses. The exposure that buys is bounded and small: a
@@ -166,8 +169,6 @@ size_t Cache::SHA256Hash::operator()(const array<uint8_t, 32>& key) const {
 // lock around cacheList that nothing in this class has today, and a background
 // writer racing an Android kill has the same failure window anyway.
 namespace {
-    constexpr int kPendingEntriesBeforeSave = 16;
-    constexpr int64_t kSaveIntervalNs = 5LL * 1000 * 1000 * 1000;
 
     int64_t monotonic_now_ns() {
         // CLOCK_MONOTONIC, so a wall-clock jump -- which Android does hand out
@@ -218,7 +219,11 @@ Cache::~Cache() {
 
 void Cache::flushIfDue() {
     if (pendingEntries == 0) return;
-    if (pendingEntries < kPendingEntriesBeforeSave && (monotonic_now_ns() - lastSaveNs) < kSaveIntervalNs) return;
+    // G99 test batches more regenerable entries, reducing whole-file writes
+    // during a shader compilation burst. Keep the same five-second deadline.
+    // A process kill may lose at most 63 recent translations, never game data.
+    if (!g99_profile::cache_flush_due(global_settings.helio_g99_active,
+                                     pendingEntries, monotonic_now_ns() - lastSaveNs)) return;
     save();
 }
 

@@ -10,6 +10,10 @@
 #include "../gl/log.h"
 #include "../gl/envvars.h"
 #include "gpu_utils.h"
+#include "g99_profile.h"
+#if defined(__ANDROID__)
+#include <sys/system_properties.h>
+#endif
 #include "../gl/getter.h"
 
 #define DEBUG 0
@@ -19,7 +23,19 @@ global_settings_t global_settings;
 // Defined in the multi-draw section below; called at the end of init_settings().
 static void parse_multidraw_orders();
 
+static std::string g99_system_property(const char* name) {
+#if defined(__ANDROID__)
+    char value[PROP_VALUE_MAX] = {};
+    __system_property_get(name, value);
+    return value;
+#else
+    return {};
+#endif
+}
+
 void init_settings() {
+    global_settings.helio_g99_requested = false;
+    global_settings.helio_g99_active = false;
 #if defined(__APPLE__)
     global_settings.angle = AngleMode::Disabled;
     global_settings.angle_config = AngleConfig::DisableIfPossible;
@@ -111,6 +127,8 @@ void init_settings() {
         hideMGEnvLevel = HideMGEnvLevel::Disabled;
     }
 
+    global_settings.helio_g99_requested = success && config_get_int("helioG99Test") == 1;
+
     Version customGLVersion(customGLVersionInt);
 
     int isInPluginApp = 0;
@@ -126,6 +144,7 @@ void init_settings() {
 
     if (isInPluginApp == 0 && fclVersion == 0 && zlVersion == 0 && pgwVersion == 0 && !is_custom_mg_dir) {
         LOG_V("Unsupported launcher detected, force using default config.")
+        global_settings.helio_g99_requested = false;
         angleConfig = AngleConfig::DisableIfPossible;
         noErrorConfig = NoErrorConfig::Auto;
         enableExtComputeShader = false;
@@ -155,6 +174,23 @@ void init_settings() {
     LOG_D("Is Adreno 740? = %s", is740 ? "true" : "false")
     LOG_D("Is Adreno 830? = %s", is830 ? "true" : "false")
     LOG_D("Is ANGLE supported? = %s", isANGLESupported ? "true" : "false")
+
+    const auto soc = g99_system_property("ro.soc.model");
+    const auto board = g99_system_property("ro.board.platform");
+    const auto hardware_name = g99_system_property("ro.hardware");
+    global_settings.helio_g99_active = global_settings.helio_g99_requested &&
+        g99_profile::eligible(gpuString, soc, board, hardware_name);
+    if (global_settings.helio_g99_active) {
+        // Runtime overlay only: do not rewrite the user's normal settings.
+        // No overclocking, error masking, synchronization removal or extension spoofing.
+        angleConfig = AngleConfig::ForceDisable;
+        fsr1Setting = FSR1_Quality_Preset::Disabled;
+        maxGlslCacheSize = static_cast<size_t>(g99_profile::cache_mib(
+            config_get_int("maxGlslCacheSize"))) * 1024 * 1024;
+    }
+    LOG_V("[G99 Test] requested=%d active=%d GPU=%s SoC=%s board=%s hardware=%s",
+          global_settings.helio_g99_requested, global_settings.helio_g99_active,
+          gpu_cstr, soc.c_str(), board.c_str(), hardware_name.c_str());
 
     switch (angleConfig) {
     case AngleConfig::ForceDisable:
@@ -680,6 +716,8 @@ void init_settings_post() {
 std::string dump_settings_string(std::string prefix) {
     std::stringstream ss;
 
+    ss << prefix << "HelioG99TestRequested: " << global_settings.helio_g99_requested << "\n";
+    ss << prefix << "HelioG99TestActive: " << global_settings.helio_g99_active << "\n";
     ss << prefix << "Angle: " << (global_settings.angle == AngleMode::Enabled ? "Enabled" : "Disabled") << "\n";
     ss << prefix << "IgnoreError: ";
     switch (global_settings.ignore_error) {

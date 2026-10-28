@@ -1,0 +1,130 @@
+name: G99 experimental Android APK
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'MobileGlues-cpp/**'
+      - 'android-plugin-overlay/**'
+      - 'scripts/g99/**'
+      - '.github/workflows/g99-android.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: g99-android
+  cancel-in-progress: false
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.existing.outputs.skip }}
+    steps:
+      - id: existing
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          count=$(gh release view g99-test-1 --repo '${{ github.repository }}' --json assets --jq '.assets | length' 2>/dev/null || echo 0)
+          if [ "$count" -gt 0 ]; then echo 'skip=true' >> "$GITHUB_OUTPUT"; else echo 'skip=false' >> "$GITHUB_OUTPUT"; fi
+  build:
+    needs: prepare
+    if: needs.prepare.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - name: Checkout renderer fork and dependencies
+        uses: actions/checkout@v4
+        with:
+          path: renderer
+          submodules: recursive
+      - name: Checkout pinned upstream plugin
+        uses: actions/checkout@v4
+        with:
+          repository: MobileGL-Dev/MobileGlues-plugin
+          ref: f5105e4ddd1752cccdcc6421c402960d40ec3d9d
+          path: plugin
+          submodules: false
+      - name: Host tests
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Werror renderer/MobileGlues-cpp/tests/g99_profile_test.cpp -o "$RUNNER_TEMP/g99_profile_test"
+          "$RUNNER_TEMP/g99_profile_test"
+          sh renderer/MobileGlues-cpp/tests/run.sh
+      - name: Stage plugin overlay and modified renderer
+        run: bash renderer/scripts/g99/stage-plugin.sh "$GITHUB_WORKSPACE/plugin"
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+      - name: Install pinned Android toolchain
+        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;27.3.13750724' 'cmake;3.22.1'
+      - name: Prepare experimental signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.G99_SIGNING_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.G99_SIGNING_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.G99_SIGNING_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.G99_SIGNING_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          key="$RUNNER_TEMP/g99-signing.jks"
+          if [ -n "$KEYSTORE_BASE64" ]; then
+            test -n "$STORE_PASSWORD" && test -n "$KEY_ALIAS" && test -n "$KEY_PASSWORD"
+            printf '%s' "$KEYSTORE_BASE64" | base64 --decode > "$key"
+            mode='configured persistent signing key'
+          else
+            # A unique, non-official test identity. Private key never goes into
+            # Git, logs, artifacts or the release. Later builds will not update
+            # this APK in place unless a persistent signer is configured first.
+            STORE_PASSWORD=$(openssl rand -hex 32)
+            KEY_PASSWORD="$STORE_PASSWORD"
+            KEY_ALIAS=g99-experimental
+            echo "::add-mask::$STORE_PASSWORD"
+            export STORE_PASSWORD KEY_PASSWORD
+            keytool -genkeypair -keystore "$key" -storetype JKS \
+              -alias "$KEY_ALIAS" -keyalg RSA -keysize 3072 -validity 3650 \
+              -storepass:env STORE_PASSWORD -keypass:env KEY_PASSWORD \
+              -dname 'CN=MobileGlues G99 Experimental, O=Unofficial test build'
+            mode='one-release experimental signing key (future differently signed builds require reinstall)'
+          fi
+          chmod 600 "$key"
+          echo "G99_SIGNING_STORE_FILE=$key" >> "$GITHUB_ENV"
+          echo "SIGNING_STORE_PASSWORD=$STORE_PASSWORD" >> "$GITHUB_ENV"
+          echo "SIGNING_KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "SIGNING_KEY_PASSWORD=$KEY_PASSWORD" >> "$GITHUB_ENV"
+          echo "Signing: $mode" > "$RUNNER_TEMP/G99-SIGNING.txt"
+      - name: Test profile config and build arm64 release APK
+        working-directory: plugin
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:testReleaseUnitTest --tests '*G99ProfileTest' :app:assembleRelease --no-daemon --stacktrace
+      - name: Verify APK, record source and certificate
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          apk=$(find plugin/app/build/outputs/apk/release -name '*.apk' -print -quit)
+          test -n "$apk"
+          cp "$apk" dist/MobileGlues-G99-Test-1-arm64-v8a.apk
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose --print-certs dist/*.apk > dist/APK-SIGNATURE.txt
+          "$ANDROID_HOME/build-tools/36.0.0/aapt2" dump badging dist/*.apk > dist/APK-MANIFEST.txt
+          sha256sum dist/*.apk > dist/SHA256SUMS.txt
+          cp "$RUNNER_TEMP/G99-SIGNING.txt" dist/
+          cp renderer/docs/G99-TEST-AR.md dist/
+          printf '%s\n' 'Renderer commit: ${{ github.sha }}' 'Plugin commit: f5105e4ddd1752cccdcc6421c402960d40ec3d9d' > dist/SOURCE-COMMITS.txt
+      - name: Upload APK and checks
+        uses: actions/upload-artifact@v4
+        with:
+          name: MobileGlues-G99-Test-1
+          path: dist/
+      - name: Publish experimental release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create g99-test-1 dist/* --repo '${{ github.repository }}' \
+            --target '${{ github.sha }}' --prerelease --title 'MobileGlues Helio G99 Test 1 (experimental)' \
+            --notes-file renderer/docs/G99-RELEASE-NOTES.md
+      - name: Remove private signing material
+        if: always()
+        run: rm -f "$RUNNER_TEMP/g99-signing.jks"
