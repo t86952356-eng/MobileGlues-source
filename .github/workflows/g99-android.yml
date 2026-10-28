@@ -15,7 +15,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   prepare:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     outputs:
       skip: ${{ steps.existing.outputs.skip }}
     steps:
@@ -28,7 +28,7 @@ jobs:
   build:
     needs: prepare
     if: needs.prepare.outputs.skip != 'true'
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 55
     steps:
       - name: Checkout renderer fork and dependencies
@@ -51,16 +51,22 @@ jobs:
       - name: Stage plugin overlay and modified renderer
         run: bash renderer/scripts/g99/stage-plugin.sh "$GITHUB_WORKSPACE/plugin"
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v4
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Use runner Android SDK
+        run: |
+          test -n "$ANDROID_HOME"
+          test -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          echo "$ANDROID_HOME/cmdline-tools/latest/bin" >> "$GITHUB_PATH"
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --version
       - name: Install pinned Android toolchain
-        run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;27.3.13750724' 'cmake;3.22.1'
+        run: |
+          set -o pipefail
+          sdkmanager 'platforms;android-36' 'build-tools;36.0.0' 'ndk;27.3.13750724' 'cmake;3.22.1' 2>&1 | tee "$RUNNER_TEMP/g99-sdk.log
       - name: Prepare experimental signing key
         env:
           KEYSTORE_BASE64: ${{ secrets.G99_SIGNING_KEYSTORE_BASE64 }}
@@ -99,7 +105,8 @@ jobs:
         working-directory: plugin
         run: |
           chmod +x gradlew
-          ./gradlew :app:testReleaseUnitTest --tests '*G99ProfileTest' :app:assembleRelease --no-daemon --stacktrace
+          set -o pipefail
+          ./gradlew :app:testReleaseUnitTest --tests '*G99ProfileTest' :app:assembleRelease --no-daemon --stacktrace 2>&1 | tee "$RUNNER_TEMP/g99-gradle.log"
       - name: Verify APK, record source and certificate
         run: |
           set -euo pipefail
@@ -125,6 +132,22 @@ jobs:
           gh release create g99-test-1 dist/* --repo '${{ github.repository }}' \
             --target '${{ github.sha }}' --prerelease --title 'MobileGlues Helio G99 Test 1 (experimental)' \
             --notes-file renderer/docs/G99-RELEASE-NOTES.md
+      - name: Publish safe failure diagnostics
+        if: failure()
+        run: |
+          python3 - <<'PYDIAG'
+          import os
+          from pathlib import Path
+          for name in ('g99-sdk.log', 'g99-gradle.log'):
+              p = Path(os.environ['RUNNER_TEMP']) / name
+              if p.exists():
+                  data = p.read_text(errors='replace')
+                  lines = data.splitlines()
+                  relevant = [line for line in lines if any(key in line for key in ('error:', 'e: ', 'failed', 'Could not', 'What went wrong', 'not found', 'FAILURE'))]
+                  text = '\n'.join(relevant[-20:] or lines[-20:])[-4000:]
+                  text = text.replace('%', '%25').replace('\r', '%0D').replace('\n', '%0A')
+                  print('::error title=' + name + '::' + text)
+          PYDIAG
       - name: Remove private signing material
         if: always()
         run: rm -f "$RUNNER_TEMP/g99-signing.jks"
