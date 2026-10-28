@@ -127,7 +127,10 @@ void init_settings() {
         hideMGEnvLevel = HideMGEnvLevel::Disabled;
     }
 
-    global_settings.helio_g99_requested = success && config_get_int("helioG99Test") == 1;
+    // Test 2 defaults ON only after hardware eligibility below. Explicit 0
+    // remains OFF; malformed explicit values do not accidentally enable it.
+    global_settings.helio_g99_requested = !success || !config_has_key("helioG99Test") ||
+        config_get_int("helioG99Test") == 1;
 
     Version customGLVersion(customGLVersionInt);
 
@@ -185,6 +188,7 @@ void init_settings() {
         // No overclocking, error masking, synchronization removal or extension spoofing.
         angleConfig = AngleConfig::ForceDisable;
         fsr1Setting = FSR1_Quality_Preset::Disabled;
+        enableExtTimerQuery = false; // profiling queries are opt-out in the G99 performance profile
         maxGlslCacheSize = static_cast<size_t>(g99_profile::cache_mib(
             config_get_int("maxGlslCacheSize"))) * 1024 * 1024;
     }

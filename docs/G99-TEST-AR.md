@@ -1,3 +1,31 @@
+# أحدث تجربة — G99 Test 2
+
+طلب المستخدم الثاني: لم يلاحظ فرقًا من ضبط الإعدادات وحده، ويريد تحسينًا حقيقيًا أثناء الرسم وافتراضيات G99. هذه التجربة لا تدّعي «زيادة واضحة» قبل قياس الجهاز.
+
+## التقنية الجديدة
+
+مرشح Driver State Filtering في `MobileGlues-cpp/gl/g99_dispatch.cpp` و`g99_state_cache.h`. يحذف فقط إسناد الحالة الصحيح المتكرر لتسع دوال: glViewport، glScissor، glDepthMask، glDepthFunc، glCullFace، glFrontFace، glClearColor، glClearDepthf، glClearStencil.
+
+يركب المرشح بعد init_target_gles على جدول GLES، فيشمل أوامر المحرك الداخلية واستعادتها، لا الواجهة وحدها. التخزين ثابت الحجم داخل MGContext؛ لا تخصيص ديناميكي أو mutex على المسار الساخن. كل سياق مستقل، وتُبطل القيم المعروفة عند إعادة الربط أو نقل السياق. أول أمر يُمرر؛ القيم الفاسدة وغير المنتهية والسياقات غير المتتبعة تُمرر دائمًا. لا نحذف draw calls أو glClear أو synchronization ولا نغيّر shader precision. لا نعيد تسمية اختصار glEnable/glBindTexture الموجود أصلًا كميزة جديدة.
+
+يعتمد ذلك على استخدام GL عبر MobileGlues/GLES: كود خارجي يغير حالة السياق مباشرة بمؤشرات تعريف خام متجاوزًا هذه الطبقة غير مشمول بضمان الظل؛ هذا حد ثقة مشترك مع تتبع الحالة الموجود، وليس ادعاء توافق مع كل برنامج Android. لم نفعّل تخزين blend/color-mask المفهرس لتجنب كسر فروق draw buffers.
+
+المبرر: إزالة تغييرات الحالة غير الضرورية تقلل driver CPU overhead، لكنها لا تقلل تكلفة fragment shading أو عدد البكسلات. مرجع Arm: https://support.arm.com/documentation/dui0363/d/developing-opengl-es-applications/identifying-problems-in-applications و https://developer.arm.com/community/arm-community-blogs/b/mobile-graphics-and-gaming-blog/posts/mali-performance-5-an-application-s-performance-responsibilities
+
+تظهر عدادات submitted/forwarded/skipped في MG/latest.log بعد 120 إطارًا ثم كل 600. يمكن أن تثبت العدادات عمل المرشح، **ولا تثبت ارتفاع FPS**. إذا كان skipped قليلًا أو كانت اللعبة GPU-bound فقد لا يحدث تحسن ملحوظ.
+
+## الافتراضيات
+
+في التطبيق المخصص لـG99: تفضيل native GLES، عدم إخفاء الأخطاء، GL تلقائي، كاش 64 MiB، compute/timer/DSA وFSR1 معطلة، multi-draw بالترتيب الافتراضي المرشح حسب الإمكانات، وHelio G99 Test مفعّل. تظل البوابة الأصلية تتطلب SoC من عائلة G99/MT6789 مع Mali-G57 قبل تفعيل المرشح. القيم الصريحة 0 أو الفاسدة لا تُحول إلى ON.
+
+المستخدم القادم من Test 1 يحتفظ بملف MG/config.json القديم عمدًا؛ زر **تطبيق افتراضيات G99** يستبدل الإعدادات المعروفة بعد تأكيد واضح، بما فيها ترتيب multi-draw المخصص، ويحافظ على المفاتيح غير المعروفة. انسخ الملف احتياطيًا إن أردت استعادة الضبط السابق. إيقاف وضع التجربة يعيد القيم اليدوية المخزنة حاليًا، وليس نسخة قديمة قبل إعادة الضبط.
+
+نسخة التطبيق 2.0.0-g99-test.2 / code 2002، وRelease مستهدف g99-test-2. توقيع اختبار جديد: احذف Test 1 قبل التثبيت إذا اختلفت الشهادة، ولا تحذف التطبيق الرسمي أو مجلد MG. لا يوجد توليد إطارات AI ولا كسر سرعة ولا تجاوز حماية حرارة. نتائج البناء والنشر ستضاف بعد التحقق الفعلي؛ لا توجد قياسات هاتف هنا.
+
+---
+
+# سجل Test 1 التاريخي — ليس وصف الإعدادات الحالية
+
 # MobileGlues — Helio G99 Test 1
 
 هذه تجربة مستقلة عن FoldCraftLauncher، وليست ضمانًا لأعلى أداء أو بديلًا لاختبار الهاتف الفعلي.

@@ -153,6 +153,11 @@ private fun ConfigSections(controller: AppController, config: MGConfig) {
                 checked = config.helioG99Test,
                 onCheckedChange = controller::setHelioG99Test,
             )
+            MiuixArrowRow(
+                title = stringResource(R.string.g99_defaults_title),
+                summary = stringResource(R.string.g99_defaults_summary),
+                onClick = controller::applyG99Defaults,
+            )
             MiuixTextRow(
                 title = stringResource(R.string.g99_ai_title),
                 summary = stringResource(R.string.g99_ai_status),

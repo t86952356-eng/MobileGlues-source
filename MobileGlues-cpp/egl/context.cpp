@@ -289,6 +289,7 @@ void mg_context_make_current(EGLDisplay dpy, EGLSurface draw, EGLSurface read, E
     // gl_state-> keeps working unchanged; it simply stops being one set of values
     // for every context in the process.
     gl_state = &g_current_ctx->gl;
+    g_current_ctx->g99_state.invalidate(); // conservative rebind/thread-migration boundary
     // Now, and not in mg_context_create() where nothing was current yet, the
     // enable table can talk to the driver.
     mg_enable_sync_driver(&g_current_ctx->enable);

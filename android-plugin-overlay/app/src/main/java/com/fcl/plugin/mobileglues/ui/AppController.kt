@@ -484,6 +484,10 @@ class AppController(
 
     fun setExtDirectStateAccess(enabled: Boolean) = update { it.copy(extDirectStateAccess = enabled) }
 
+    fun applyG99Defaults() {
+        confirmThenUpdate(R.string.g99_defaults_warning) { MGConfig.Default }
+    }
+
     fun setHelioG99Test(enabled: Boolean) {
         if (enabled == configStore.config.value?.helioG99Test) return
         if (enabled) {

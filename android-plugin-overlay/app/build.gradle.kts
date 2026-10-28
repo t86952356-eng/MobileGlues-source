@@ -14,8 +14,8 @@ android {
         applicationId = "com.fcl.plugin.mobileglues.g99test"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2001
-        versionName = "2.0.0-g99-test.1"
+        versionCode = 2002
+        versionName = "2.0.0-g99-test.2"
         ndk { abiFilters += listOf("arm64-v8a") }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
@@ -41,10 +41,10 @@ android {
         }
 
         configureEach {
-            resValue("string","app_name","MobileGlues G99 Test")
+            resValue("string","app_name","MobileGlues G99 Test 2")
 
-            manifestPlaceholders["des"] = "MobileGlues G99 Test (experimental, OpenGL 4.0)"
-            manifestPlaceholders["renderer"] = "MobileGlues G99 Test:libmobileglues.so:libmobileglues.so"
+            manifestPlaceholders["des"] = "MobileGlues G99 Test 2 (experimental, OpenGL 4.0)"
+            manifestPlaceholders["renderer"] = "MobileGlues G99 Test 2:libmobileglues.so:libmobileglues.so"
 
             manifestPlaceholders["minMCVer"] = "1.17"
             manifestPlaceholders["maxMCVer"] = "" //为空则不限制 No restriction if empty

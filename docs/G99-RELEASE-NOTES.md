@@ -1,18 +1,16 @@
+# MobileGlues G99 Test 2 — experimental
+
 ## العربية
 
-نسخة **تجريبية غير رسمية** لمعمارية arm64، تُثبت باسم **MobileGlues G99 Test** بجانب التطبيق الرسمي. افتح الإعدادات، امنح الوصول إلى مجلد MG الصحيح، وفعّل **Helio G99 Test**، ثم أعد تشغيل اللعبة واختر العارض التجريبي في اللانشر.
-
-- يتطلب التفعيل الفعلي اكتشاف Mali-G57 مع Helio G99 أو معرّف عائلة MT6789؛ لا يكفي اسم GPU وحده. قد تشترك مشتقات المعالج في MT6789.
-- يفضّل GLES الأصلي بدل ANGLE، ويوقف FSR1 في الوضع التجريبي، ويضبط كاش GLSL بين 64 و128 MiB. تبقى الإعدادات اليدوية محفوظة وتعود عند إيقاف الخيار وإعادة تشغيل اللعبة.
-- يجمع كتابة كاش الشادر كل 64 عنصرًا أو بعد 5 ثوانٍ عند عملية الكاش التالية، بدل 16 عنصرًا. قد يُعاد توليد آخر 63 ترجمة عند إغلاق العملية قسرًا؛ لا يمس ذلك بيانات اللعبة.
-- لا كسر سرعة، ولا تجاوز للحماية الحرارية، ولا حذف مزامنة أو تجاهل أخطاء إضافي أو تزييف امتدادات.
-- **لم تُقَس زيادة FPS ولم يُجرَ اختبار على جهاز Helio G99 فعلي**. قد لا يتحسن الأداء أو قد يتراجع؛ أوقف التجربة عند حدوث خلل. قارن المشهد والإعدادات والحرارة نفسها، واستعمل اختبار multi-draw الموجود لاختيار الترتيب المقاس على جهازك.
-- **توليد إطارات AI غير منفّذ**. تظهر حالة توضيحية فقط، لا مفتاح وهمي. FSR1 ليس AI frame generation.
-- راجع `G99-SIGNING.txt`: إذا استُخدم مفتاح التجربة المؤقت فلن تقبل هذه النسخة تحديثًا من نسخة مستقبلية بتوقيع مختلف؛ يلزم حينها إعادة تثبيت التطبيق التجريبي. لم يُستخدم مفتاح MobileGL-Dev الرسمي، ولا يُنشر أي مفتاح خاص.
-- التطبيق الرسمي والتجريبي قد يقرآن مجلد MG نفسه؛ لا تعدّل الإعدادات من التطبيقين بالتزامن. هذا ليس تعديلًا للانشر.
+- نسخة جديدة بمعمارية arm64 من التطبيق التجريبي، وليست تعديلًا للانشر.
+- التقنية الجديدة: **Driver State Filtering** لتسع دوال GL، في جدول GLES نفسه حتى تشمل أوامر المحرك الداخلية واستعادتها. يحفظ كل سياق حالته مستقلًا، ولا يخزن السياقات غير المتتبعة أو القيم الفاسدة، ولا يحذف رسمًا أو مزامنة أو يغير دقة الشادر.
+- يمكن أن تقل كلفة CPU عند كثرة أوامر الحالة المكررة. **لا توجد زيادة FPS مقاسة على هاتف G99، ولا ضمان بفرق ملحوظ إذا كان الاختناق GPU-bound**. عدادات الأوامر ليست قياس FPS.
+- إعدادات G99 الجديدة مفعلة افتراضيًا للإعدادات الجديدة بعد التحقق من G99/MT6789 + Mali-G57. للإعدادات القديمة اضغط **تطبيق افتراضيات G99** بعد نسخ MG/config.json احتياطيًا، ثم أعد تشغيل اللعبة.
+- الافتراضيات: GLES أصلي، عدم إخفاء الأخطاء، GL تلقائي، كاش 64 MiB، CS/timer/DSA وFSR1 معطلة، وترتيب multi-draw الافتراضي المرشّح حسب الإمكانات. لا نقول إن ترتيبًا ثابتًا هو أسرع ترتيب لكل الألعاب؛ يمكن إعادة اختبار multi-draw على الهاتف.
+- السجل MG/latest.log يعرض `[G99 FastPath]` وعدّادات submitted/forwarded/skipped بعد 120 إطارًا ثم كل 600. لا يوجد AI frame generation.
+- **توقيع هذه الدفعة مختلف عن Test 1 عند استخدام مفتاح التجربة المؤقت؛ احذف التطبيق التجريبي القديم أولًا ثم ثبّت Test 2. لا تحذف التطبيق الرسمي أو مجلد MG.** إعدادات MG مشتركة؛ لا تعدّلها من تطبيقين معًا.
+- لم يُجرَ اختبار جهاز فعلي. قارن العالم والدقة والحرارة والـmods نفسها، وأرسل السجل وFPS قبل/بعد بدل افتراض أن عدد الأوامر المتجاوزة يساوي ارتفاع FPS.
 
 ## English
 
-Unofficial, opt-in arm64 experiment; separate application ID `com.fcl.plugin.mobileglues.g99test`. Native GLES, FSR1 disabled, bounded 64–128 MiB shader cache and 64-entry / five-second-on-cache-operation persistence batches. Detection requires both Mali-G57 and a G99 / MT6789-family SoC identifier. Stored manual settings are not rewritten. No measured FPS benefit is claimed; no physical-device test was performed. No AI frame generation is implemented.
-
-See the bundled source commits, LGPL notices, SHA256 and signing certificate. A one-release experimental signer may require reinstalling future differently signed test builds. This is not an official MobileGL-Dev build. The source repository contains the renderer changes and a reproducible overlay on the pinned upstream plugin, so a separate plugin fork is not required.
+Experimental ARM64 build, app version 2.0.0-g99-test.2 / code 2002. Adds per-context filtering of nine valid, identical driver-state assignments at the shared GLES dispatch boundary. No draw skipping, synchronization removal, precision reduction, AI generation or measured FPS claims. This targets CPU driver overhead, not GPU shader workload. New configs default to the G99 profile after hardware gating; use the confirmed Apply G99 defaults action for inherited configs. One-release signing may require uninstalling the old experimental app before installation; do not remove MG or the official app.

@@ -13,6 +13,7 @@
 #include "gl/gl.h"
 #include "gl/log.h"
 #include "gl/mg.h"
+#include "gl/g99_state_cache.h"
 #include "gles/loader.h"
 #include "includes.h"
 #include <cerrno>
@@ -67,6 +68,7 @@ void proc_init() {
     load_libs();
     init_target_egl();
     init_target_gles();
+    mg_g99_install_dispatch();
     set_multidraw_setting();
 
     init_settings_post();

@@ -10,6 +10,7 @@
 
 #include "../includes.h"
 #include "../gl/enable.h"
+#include "../gl/g99_state_cache.h"
 #include "../gl/mg.h"
 #include <memory>
 
@@ -53,6 +54,7 @@ struct MGContext {
     EGLint context_flags;  // reported back through glGetIntegerv(GL_CONTEXT_FLAGS)
     std::shared_ptr<MGShareGroup> share_group;
 
+    G99StateCache g99_state; // never shared between contexts or recycled handles
     mg_enable_state_t enable; // per-context by definition: enable state is not shared
     gl_state_s gl;            // current program / texture unit / draw fbo, all per-context
 

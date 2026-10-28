@@ -95,6 +95,10 @@ int config_refresh() {
     return 1;
 }
 
+int config_has_key(char* name) {
+    return config_json && cJSON_GetObjectItem(config_json, name) != nullptr;
+}
+
 int config_get_int(char* name) {
     if (config_json == NULL) {
         return -1;

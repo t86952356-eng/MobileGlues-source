@@ -73,7 +73,7 @@ internal object MGConfigCodec {
             fsr1 = Fsr1Preset.entries.fromWire(root.intOrNull(KEY_FSR1), defaults.fsr1),
             helioG99Test = root.get(KEY_G99_TEST)?.let {
                 it.isJsonPrimitive && it.asJsonPrimitive.isNumber && root.intOrNull(KEY_G99_TEST) == 1
-            } ?: false,
+            } ?: defaults.helioG99Test,
         )
     }
 

@@ -25,6 +25,7 @@ extern "C"
 
     int config_refresh();
     int config_get_int(char* name);
+    int config_has_key(char* name);
     char* config_get_string(char* name);
     void config_cleanup();
 

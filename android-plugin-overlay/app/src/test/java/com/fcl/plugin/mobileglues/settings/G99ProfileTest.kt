@@ -5,10 +5,24 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class G99ProfileTest {
-    @Test fun absentOrInvalidRequestIsOff() {
-        for (value in listOf("{}", "{\"helioG99Test\":0}", "{\"helioG99Test\":2}", "{\"helioG99Test\":-1}", "{\"helioG99Test\":true}", "{\"helioG99Test\":\"bad\"}", "{\"helioG99Test\":\"1\"}", "{\"helioG99Test\":null}", "{\"helioG99Test\":[]}")) {
+    @Test fun missingRequestDefaultsOnButExplicitInvalidOrOffDoNot() {
+        assertTrue(MGConfigCodec.decode(JsonParser.parseString("{}").asJsonObject).helioG99Test)
+        for (value in listOf("{\"helioG99Test\":0}", "{\"helioG99Test\":2}", "{\"helioG99Test\":-1}", "{\"helioG99Test\":true}", "{\"helioG99Test\":\"bad\"}", "{\"helioG99Test\":\"1\"}", "{\"helioG99Test\":null}", "{\"helioG99Test\":[]}")) {
             assertFalse(MGConfigCodec.decode(JsonParser.parseString(value).asJsonObject).helioG99Test)
         }
+    }
+    @Test fun g99DefaultsAreExplicitAndSafe() {
+        val config = MGConfig.Default
+        assertTrue(config.helioG99Test)
+        assertEquals(AngleConfig.DisableIfPossible, config.angle)
+        assertEquals(NoErrorConfig.DoNotIgnore, config.noError)
+        assertEquals(64, config.glslCache.wire)
+        assertFalse(config.extTimerQuery)
+        assertFalse(config.extComputeShader)
+        assertFalse(config.extDirectStateAccess)
+        assertEquals(Fsr1Preset.Disabled, config.fsr1)
+        assertEquals(GlVersion.Default, config.glVersion)
+        assertEquals(MultidrawSettings.Default, config.multidraw)
     }
     @Test fun requestUsesNumericNativeWireFormatAndRoundTrips() {
         val config = MGConfig.Default.copy(helioG99Test = true)
@@ -18,7 +32,7 @@ class G99ProfileTest {
         assertEquals(config, MGConfigCodec.decode(encoded))
     }
     @Test fun disablingPreservesEveryManualSetting() {
-        val original = MGConfig.Default.copy(angle = AngleConfig.ForceEnable,
+        val original = MGConfig.Default.copy(helioG99Test = false, angle = AngleConfig.ForceEnable,
             fsr1 = Fsr1Preset.Balanced, glslCache = GlslCacheSize.Limited(256))
         val toggled = original.copy(helioG99Test = true).copy(helioG99Test = false)
         assertEquals(original, toggled)

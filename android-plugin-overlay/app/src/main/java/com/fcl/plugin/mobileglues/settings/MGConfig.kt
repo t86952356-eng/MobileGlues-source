@@ -338,7 +338,7 @@ sealed interface GlslCacheSize {
     val mebibytesOrZero: Int get() = (this as? Limited)?.mebibytes ?: 0
 
     companion object {
-        val Default: GlslCacheSize = Limited(32)
+        val Default: GlslCacheSize = Limited(64)
 
         /** 滑块回来的 MiB 数 → 配置值，0 表示关闭。 */
         fun ofMebibytes(mebibytes: Int): GlslCacheSize =
@@ -360,19 +360,19 @@ sealed interface GlslCacheSize {
  * 这里的默认值是全 App 唯一的一份——[MGConfigCodec] 解析时的回落值也取自这里。
  */
 data class MGConfig(
-    val angle: AngleConfig = AngleConfig.EnableIfPossible,
-    val noError: NoErrorConfig = NoErrorConfig.Auto,
+    val angle: AngleConfig = AngleConfig.DisableIfPossible,
+    val noError: NoErrorConfig = NoErrorConfig.DoNotIgnore,
     val multidraw: MultidrawSettings = MultidrawSettings.Default,
     val depthClearFix: DepthClearFixMode = DepthClearFixMode.Disabled,
     val glVersion: GlVersion = GlVersion.Default,
     val glslCache: GlslCacheSize = GlslCacheSize.Default,
     val extComputeShader: Boolean = false,
     /** 磁盘上 1 表示「启用 timer_query 扩展」；界面上的开关文案是「禁用」，取反只发生在渲染那一处。 */
-    val extTimerQuery: Boolean = true,
+    val extTimerQuery: Boolean = false,
     val extDirectStateAccess: Boolean = false,
     val fsr1: Fsr1Preset = Fsr1Preset.Disabled,
     /** Request only: native additionally verifies SoC/GPU before applying it. */
-    val helioG99Test: Boolean = false,
+    val helioG99Test: Boolean = true,
 ) {
     val fsr1Enabled: Boolean get() = fsr1 != Fsr1Preset.Disabled
 
